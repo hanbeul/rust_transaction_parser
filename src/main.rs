@@ -31,7 +31,15 @@ fn example() -> Result<(), Box<dyn Error>> {
         transactions.push(t);
     }
 
-    transactions.sort_by(|a, b| b.amount.cmp(&a.amount));
+    transactions.sort_by(|a, b| {
+        if b.amount > a.amount {
+            Ordering::Less
+        } else if b.amount < a.amount {
+            Ordering::Greater
+        } else {
+            Ordering::Equal
+        }
+    });
 
     println!("{:?}", transactions);
     Ok(())
