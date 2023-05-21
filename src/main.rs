@@ -14,6 +14,16 @@ struct Transaction<'a> {
 }
 
 fn example() -> Result<(), Box<dyn Error>> {
+    // Read files in current dir? 
+    for entry in std::fs::read_dir(".")? {
+        let entry = entry?;
+        let path = entry.path();
+        if !path.is_dir() {
+            println!("{:?}", path.extension());
+        }
+    }
+
+
     // Build the CSV reader and iterate over each record.
     let mut transactions: Vec<Transaction> = vec![];
     let mut rdr = csv::Reader::from_reader(io::stdin());
