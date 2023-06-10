@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::io;
 use std::process;
+use std::convert::From;
 use chrono::prelude::*;
 use rusty_money::{Money, iso};
 
@@ -11,6 +12,35 @@ struct Transaction<'a> {
     date: chrono::NaiveDate,
     name: String,
     amount: rusty_money::Money<'a, iso::Currency>,
+}
+
+#[derive(Debug)]
+struct CapOneTransaction {
+    date: String,
+    description: String,
+    amount: String,
+}
+
+impl From<CapOneTransaction> for Transaction<'_>{
+    fn from(t: CapOneTransaction) -> Self {
+        Transaction {
+            date: NaiveDate::parse_from_str(&t.date, "%m/%d/%Y").unwrap(),
+            name: t.description,
+            amount: Money::from_str(&t.amount, iso::USD).unwrap(),
+        }
+    }
+}
+
+fn test() -> Result<(), Box<dyn Error>> {
+    let c1 = CapOneTransaction {
+        date: String::from("05/30/1992"),
+        description: String::from("This is a transaction description"),
+        amount: String::from("99.99"),
+    };
+
+    let t = Transaction::from(c1);
+    println!("The converted transaction is: {:?}!", t);
+    Ok(())
 }
 
 fn example() -> Result<(), Box<dyn Error>> {
@@ -56,8 +86,8 @@ fn example() -> Result<(), Box<dyn Error>> {
 }
 
 fn main() {
-    if let Err(err) = example() {
-        println!("error running example: {}", err);
+    if let Err(err) = test() {
+        println!("error running test: {}", err);
         process::exit(1);
     }
 }
