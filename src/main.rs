@@ -1,26 +1,14 @@
 use std::error::Error;
+use std::fs::File;
+use csv::Writer;
 use std::io;
 use std::process;
-use std::convert::From;
 use std::cmp::Ordering;
 use rusty_money::{Money, iso};
 use chrono::prelude::*;
 
 mod Types;
 use crate::Types::Transaction;
-use crate::Types::VentureXTransaction;
-
-//fn convert() -> Result<(), Box<dyn Error>> {
-//  let c1 = CapOneTransaction {
-//    date: String::from("05/30/1992"),
-//    description: String::from("This is a transaction description"),
-//    amount: String::from("99.99"),
-//  };
-//
-//  let t: Transaction = c1.into();
-//  println!("The converted transaction is: {:?}!", t);
-//  Ok(())
-//}
 
 fn print_type<T>(_: &T) {
     println!("Type: {}", std::any::type_name::<T>());
@@ -103,7 +91,7 @@ fn parse_transactions<'a, T>(rdr: &mut csv::Reader<T>) -> Result<Vec<Transaction
       }
 
       let t = Transaction {
-        date: NaiveDate::parse_from_str(&record[2], "%m/%d/%Y")?,
+        date: NaiveDate::parse_from_str(&record[2], "%m/%d/%y")?,
         name: record[1].to_string(),
         amount,
         source: source.to_string(),
@@ -114,15 +102,6 @@ fn parse_transactions<'a, T>(rdr: &mut csv::Reader<T>) -> Result<Vec<Transaction
   } else {
   }
 
-  transactions.sort_by(|a, b| {
-    if b.amount > a.amount {
-      Ordering::Less
-    } else if b.amount < a.amount {
-      Ordering::Greater
-    } else {
-      Ordering::Equal
-    }
-  });
   Ok(transactions)
 }
 
@@ -146,11 +125,18 @@ fn read_from_file() -> Result<(), Box<dyn Error>> {
   }
   println!("{:?}", transactions);
 
-  //let file = std::fs::File::open("data/2025-12-30_Checking...4181.csv")?;
-  //let mut rdr = csv::Reader::from_reader(file);
+  transactions.sort_by(|a, b| {
+    if b.date > a.date {
+      Ordering::Less
+    } else if b.date < a.date {
+      Ordering::Greater
+    } else {
+      Ordering::Equal
+    }
+  });
 
-  //let transactions = parse_transactions(&mut rdr);
-  //println!("{:?}", transactions);
+  write_transactions_to_csv(transactions, "output.csv");
+
   Ok(())
 }
 
@@ -163,7 +149,27 @@ fn read_from_stdin() -> Result<(), Box<dyn Error>> {
   Ok(())
 }
 
-fn write_output(transactions: Vec<Transaction>) {
+pub fn write_transactions_to_csv<'a>(
+    transactions: Vec<Transaction<'a>>, 
+    filename: &str
+) -> Result<(), Box<dyn std::error::Error>> {
+    let mut wtr = Writer::from_writer(File::create(filename)?);
+    
+    // Write header row
+    wtr.write_record(&["date", "name", "amount", "source"])?;
+    
+    // Write each transaction
+    for transaction in transactions {
+        wtr.write_record(&[
+            transaction.date.to_string(),
+            transaction.name,
+            transaction.amount.amount().to_string(),
+            transaction.source,
+        ])?;
+    }
+    
+    wtr.flush()?;
+    Ok(())
 }
 
 fn main() {
